@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Facecome — Sign up</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="auth-page">
+  <main class="card">
+    <div class="logo">
+      <svg class="logo-mark" viewBox="0 0 64 64" aria-hidden="true">
+        <defs><linearGradient id="fcg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff7a45"/><stop offset="1" stop-color="#7c3aed"/></linearGradient></defs>
+        <path d="M32 4C15.4 4 2 16.1 2 31c0 8.5 4.5 16.1 11.5 21V62l10.4-6.2c2.6.6 5.3 1 8.1 1 16.6 0 30-12.1 30-27S48.6 4 32 4z" fill="url(#fcg)"/>
+        <path d="M13 34h38c.6-1.9 1-4 1-6 0-10.5-9-19-20-19s-20 8.5-20 19c0 2 .4 4.1 1 6z" fill="#ffd166"/>
+        <circle cx="32" cy="27" r="8" fill="#fff"/>
+        <path d="M24 34h16v-2a8 8 0 0 0-16 0v2z" fill="#fff" opacity=".7"/>
+      </svg>
+      <span class="logo-text">facecome</span>
+    </div>
+    <p class="subtitle">Create a new Facecome account</p>
+
+    <form id="signup-form" novalidate>
+      <label for="name">Full name</label>
+      <input type="text" id="name" placeholder="Jane Doe" autocomplete="name" required />
+
+      <label for="email">Email</label>
+      <input type="email" id="email" placeholder="you@example.com" autocomplete="email" required />
+
+      <label for="password">Password</label>
+      <input type="password" id="password" placeholder="At least 6 characters" autocomplete="new-password" required />
+
+      <label for="confirm">Confirm password</label>
+      <input type="password" id="confirm" placeholder="Repeat your password" autocomplete="new-password" required />
+
+      <button type="submit" class="btn btn-primary">Sign up</button>
+      <p id="error" class="error hidden"></p>
+    </form>
+
+    <hr />
+    <p class="subtitle">Already have an account? <a href="login.html">Log in</a></p>
+  </main>
+
+  <script src="js/auth.js"></script>
+  <script>
+    if (FacecomeAuth.getSession()) {
+      window.location.href = 'dashboard.html';
+    }
+
+    document.getElementById('signup-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var name = document.getElementById('name').value.trim();
+      var email = document.getElementById('email').value.trim().toLowerCase();
+      var password = document.getElementById('password').value;
+      var confirm = document.getElementById('confirm').value;
+      var errorBox = document.getElementById('error');
+
+      if (!name || !email || !password) {
+        FacecomeAuth.showError(errorBox, 'Please fill in all fields.');
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        FacecomeAuth.showError(errorBox, 'Please enter a valid email address.');
+        return;
+      }
+      if (password.length < 6) {
+        FacecomeAuth.showError(errorBox, 'Password must be at least 6 characters.');
+        return;
+      }
+      if (password !== confirm) {
+        FacecomeAuth.showError(errorBox, 'Passwords do not match.');
+        return;
+      }
+
+      var result = FacecomeAuth.signup(name, email, password);
+      if (result.ok) {
+        window.location.href = 'dashboard.html';
+      } else {
+        FacecomeAuth.showError(errorBox, result.message);
+      }
+    });
+  </script>
+</body>
+</html>
