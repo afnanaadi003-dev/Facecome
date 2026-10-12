@@ -24,6 +24,9 @@
       if (users.some(function (u) { return u.email === email; })) {
         return { ok: false, message: 'An account with this email already exists.' };
       }
+      if (password.length < 6) {
+        return { ok: false, message: 'Password must be at least 6 characters.' };
+      }
       users.push({ name: name, email: email, password: password });
       writeUsers(users);
       localStorage.setItem(SESSION_KEY, email);
