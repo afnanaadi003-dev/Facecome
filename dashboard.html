@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Facecome — Dashboard</title>
+  <title>Facecome — News feed</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -18,34 +18,212 @@
       </svg>
       <span class="logo-text">facecome</span>
     </div>
-    <button id="logout" class="btn btn-secondary">Log out</button>
+    <nav class="topnav">
+      <a href="dashboard.html" class="topnav-link active">Feed</a>
+      <a href="timeline.html" class="topnav-link">Timeline</a>
+      <a href="profile.html" class="topnav-link">Profile</a>
+      <button id="logout" class="btn btn-secondary btn-compact">Log out</button>
+    </nav>
   </header>
 
-  <main class="dashboard">
-    <div class="card">
-      <h1 id="welcome">Welcome!</h1>
-      <p id="user-email" class="subtitle"></p>
-      <p>You are logged in to Facecome. 🎉</p>
+  <main class="feed-page">
+    <div class="feed-col">
+
+      <!-- Composer: text, photo, video, live talking, invite -->
+      <section class="card composer">
+        <div class="composer-top" id="composer-avatar"></div>
+        <textarea id="post-text" rows="3" placeholder="What's on your mind? Post a thought…" maxlength="2000"></textarea>
+        <div class="composer-toolbar">
+          <span class="toolbar-label">Attach:</span>
+          <input type="file" id="photo-input" accept="image/*" hidden />
+          <button type="button" class="chip" id="add-photo-btn" title="Add a photo">📷 Photo</button>
+
+          <input type="file" id="video-input" accept="video/*" hidden />
+          <button type="button" class="chip" id="add-video-btn" title="Add a video">🎬 Video</button>
+
+          <button type="button" class="chip" id="go-live-btn" title="Record a live voice note">🔴 Live talking</button>
+
+          <label class="chip chip-plain" for="invite-check">
+            <input type="checkbox" id="invite-check" style="width:auto" /> 🙋 Make joinable
+          </label>
+          <button type="button" class="chip stop-live hidden" id="stop-live-btn">⏹ Stop (0s)</button>
+          <span id="media-status" class="media-status"></span>
+          <button class="btn btn-primary" id="post-btn">Post</button>
+        </div>
+      </section>
+
+      <div id="feed"></div>
     </div>
   </main>
 
   <script src="js/auth.js"></script>
+  <script src="js/posts.js"></script>
+  <script src="js/feed.js"></script>
   <script>
     var session = FacecomeAuth.getSession();
-    if (!session) {
-      window.location.href = 'login.html';
-    } else {
-      var user = FacecomeAuth.findUser(session);
-      if (user) {
-        document.getElementById('welcome').textContent = 'Welcome, ' + user.name + '!';
-        document.getElementById('user-email').textContent = user.email;
-      }
+    if (!session) { window.location.href = 'login.html'; }
+    var me = FacecomeAuth.findUser(session);
+
+    FacecomePosts.seedIfEmpty();
+
+    /* ---------- composer ---------- */
+    var composerAvatar = document.getElementById('composer-avatar');
+    function renderComposerAvatar() {
+      composerAvatar.innerHTML = FacecomeFeed.avatarHtml(me, 'avatar-md');
     }
+
+    var pendingMedia = null; // { kind: 'photo'|'video'|'live', data }
+    var mediaStatus = document.getElementById('media-status');
+    var photoInput = document.getElementById('photo-input');
+    var videoInput = document.getElementById('video-input');
+
+    photoInput.addEventListener('change', function () {
+      var f = photoInput.files[0];
+      if (!f) return;
+      FacecomePosts.fileToPhotoDataUrl(f, function (data) {
+        if (!data) { mediaStatus.textContent = 'Could not read that image.'; return; }
+        pendingMedia = { kind: 'photo', data: data };
+        mediaStatus.textContent = '📷 photo attached';
+        photoInput.value = '';
+      });
+    });
+
+    videoInput.addEventListener('change', function () {
+      var f = videoInput.files[0];
+      if (!f) return;
+      if (f.size > FacecomePosts.AVATAR_MAX) {
+        mediaStatus.textContent = 'Video too large for demo storage (max ~400 KB).';
+        return;
+      }
+      var reader = new FileReader();
+      reader.onload = function () {
+        pendingMedia = { kind: 'video', data: reader.result };
+        mediaStatus.textContent = '🎬 video attached';
+        videoInput.value = '';
+      };
+      reader.readAsDataURL(f);
+    });
+
+    /* live talking — record a short voice note */
+    var recorder = null, chunks = [], liveTimer = null, liveSeconds = 0;
+    var goLiveBtn = document.getElementById('go-live-btn');
+    var stopLiveBtn = document.getElementById('stop-live-btn');
+
+    goLiveBtn.addEventListener('click', function () {
+      if (!navigator.mediaDevices || !window.MediaRecorder) {
+        mediaStatus.textContent = 'Live recording not supported here — use photo/video instead.';
+        return;
+      }
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+        chunks = []; liveSeconds = 0;
+        recorder = new MediaRecorder(stream);
+        recorder.ondataavailable = function (e) { chunks.push(e.data); };
+        recorder.onstop = function () {
+          stream.getTracks().forEach(function (t) { t.stop(); });
+          var blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
+          var fr = new FileReader();
+          fr.onload = function () {
+            pendingMedia = { kind: 'live', data: fr.result };
+            mediaStatus.textContent = '🔴 live voice note attached';
+          };
+          fr.readAsDataURL(blob);
+        };
+        recorder.start();
+        goLiveBtn.classList.add('recording');
+        stopLiveBtn.classList.remove('hidden');
+        liveTimer = setInterval(function () {
+          liveSeconds++;
+          stopLiveBtn.textContent = '⏹ Stop (' + liveSeconds + 's)';
+        }, 1000);
+      }).catch(function () {
+        mediaStatus.textContent = 'Microphone blocked — allow it to record live.';
+      });
+    });
+
+    stopLiveBtn.addEventListener('click', function () {
+      if (recorder && recorder.state !== 'inactive') recorder.stop();
+      clearInterval(liveTimer);
+      goLiveBtn.classList.remove('recording');
+      stopLiveBtn.classList.add('hidden');
+    });
+
+    document.getElementById('post-btn').addEventListener('click', function () {
+      var text = document.getElementById('post-text').value;
+      var isJoinable = document.getElementById('invite-check').checked;
+      if (!text.trim() && !pendingMedia) return;
+
+      var type = pendingMedia ? pendingMedia.kind : 'text';
+      FacecomePosts.create(session, type, text, pendingMedia, isJoinable);
+
+      // reset composer
+      document.getElementById('post-text').value = '';
+      document.getElementById('invite-check').checked = false;
+      pendingMedia = null;
+      mediaStatus.textContent = '';
+      renderFeed();
+    });
+
+    /* ---------- feed ---------- */
+    var feedEl = document.getElementById('feed');
+    function renderFeed() {
+      FacecomeFeed.renderPosts(feedEl, FacecomePosts.list(), session, {});
+    }
+
+    feedEl.addEventListener('click', function (e) {
+      var btn = e.target.closest('.action');
+      if (!btn) return;
+      var id = btn.getAttribute('data-id');
+      var act = btn.getAttribute('data-act');
+      if (act === 'like') { FacecomePosts.toggleLike(id, session); }
+      if (act === 'join') { FacecomePosts.toggleJoin(id, session); }
+      if (act === 'comment') {
+        var box = feedEl.querySelector('[data-box="' + id + '"]');
+        if (box) {
+          box.classList.toggle('hidden');
+          var input = box.querySelector('.comment-input');
+          if (input && !box.classList.contains('hidden')) input.focus();
+        }
+      }
+      if (act === 'send') {
+        var input = feedEl.querySelector('.comment-input[data-input="' + id + '"]');
+        if (input && input.value.trim()) {
+          FacecomePosts.addComment(id, session, input.value);
+          input.value = '';
+        }
+      }
+      renderFeed();
+      if (act === 'comment' || act === 'send') {
+        var box = feedEl.querySelector('[data-box="' + id + '"]');
+        if (box) box.classList.remove('hidden');
+      }
+    });
+
+    feedEl.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter') return;
+      var input = e.target.closest('.comment-input');
+      if (!input) return;
+      e.preventDefault();
+      var id = input.getAttribute('data-input');
+      if (input.value.trim()) {
+        FacecomePosts.addComment(id, session, input.value);
+        input.value = '';
+      }
+      renderFeed();
+      var box = feedEl.querySelector('[data-box="' + id + '"]');
+      if (box) {
+        box.classList.remove('hidden');
+        var again = box.querySelector('.comment-input');
+        if (again) again.focus();
+      }
+    });
 
     document.getElementById('logout').addEventListener('click', function () {
       FacecomeAuth.logout();
       window.location.href = 'login.html';
     });
+
+    renderComposerAvatar();
+    renderFeed();
   </script>
 </body>
 </html>

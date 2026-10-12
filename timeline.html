@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Facecome — Timeline</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="logo logo-small">
+      <svg class="logo-mark" viewBox="0 0 64 64" aria-hidden="true">
+        <defs><linearGradient id="fcg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff7a45"/><stop offset="1" stop-color="#7c3aed"/></linearGradient></defs>
+        <path d="M32 4C15.4 4 2 16.1 2 31c0 8.5 4.5 16.1 11.5 21V62l10.4-6.2c2.6.6 5.3 1 8.1 1 16.6 0 30-12.1 30-27S48.6 4 32 4z" fill="url(#fcg)"/>
+        <path d="M13 34h38c.6-1.9 1-4 1-6 0-10.5-9-19-20-19s-20 8.5-20 19c0 2 .4 4.1 1 6z" fill="#ffd166"/>
+        <circle cx="32" cy="27" r="8" fill="#fff"/>
+        <path d="M24 34h16v-2a8 8 0 0 0-16 0v2z" fill="#fff" opacity=".7"/>
+      </svg>
+      <span class="logo-text">facecome</span>
+    </div>
+    <nav class="topnav">
+      <a href="dashboard.html" class="topnav-link">Feed</a>
+      <a href="timeline.html" class="topnav-link active">Timeline</a>
+      <a href="profile.html" class="topnav-link">Profile</a>
+      <button id="logout" class="btn btn-secondary btn-compact">Log out</button>
+    </nav>
+  </header>
+
+  <main class="feed-page">
+    <div class="feed-col">
+      <div class="page-heading">
+        <h1>My timeline</h1>
+        <p class="subtitle" id="thought-count"></p>
+      </div>
+      <div id="timeline"></div>
+    </div>
+  </main>
+
+  <script src="js/auth.js"></script>
+  <script src="js/posts.js"></script>
+  <script src="js/feed.js"></script>
+  <script>
+    var session = FacecomeAuth.getSession();
+    if (!session) { window.location.href = 'login.html'; }
+    var me = FacecomeAuth.findUser(session);
+
+    var timelineEl = document.getElementById('timeline');
+
+    function render() {
+      var mine = FacecomePosts.byAuthor(session);
+      document.getElementById('thought-count').textContent =
+        mine.length + ' thought' + (mine.length === 1 ? '' : 's') + ' so far';
+      FacecomeFeed.renderPosts(timelineEl, mine, session, {});
+    }
+
+    timelineEl.addEventListener('click', function (e) {
+      var btn = e.target.closest('.action');
+      if (!btn) return;
+      var id = btn.getAttribute('data-id');
+      var act = btn.getAttribute('data-act');
+      if (act === 'like') { FacecomePosts.toggleLike(id, session); }
+      if (act === 'join') { FacecomePosts.toggleJoin(id, session); }
+      if (act === 'send') {
+        var input = timelineEl.querySelector('.comment-input[data-input="' + id + '"]');
+        if (input && input.value.trim()) FacecomePosts.addComment(id, session, input.value);
+      }
+      if (act === 'comment') {
+        var box = timelineEl.querySelector('[data-box="' + id + '"]');
+        if (box) box.classList.toggle('hidden');
+      }
+      render();
+      if (act === 'comment' || act === 'send') {
+        var box = timelineEl.querySelector('[data-box="' + id + '"]');
+        if (box) box.classList.remove('hidden');
+      }
+    });
+
+    timelineEl.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter') return;
+      var input = e.target.closest('.comment-input');
+      if (!input) return;
+      e.preventDefault();
+      var id = input.getAttribute('data-input');
+      if (input.value.trim()) FacecomePosts.addComment(id, session, input.value);
+      render();
+      var box = timelineEl.querySelector('[data-box="' + id + '"]');
+      if (box) {
+        box.classList.remove('hidden');
+        var again = box.querySelector('.comment-input');
+        if (again) again.focus();
+      }
+    });
+
+    document.getElementById('logout').addEventListener('click', function () {
+      FacecomeAuth.logout();
+      window.location.href = 'login.html';
+    });
+
+    render();
+  </script>
+</body>
+</html>

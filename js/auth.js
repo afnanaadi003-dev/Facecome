@@ -64,6 +64,18 @@
       return { ok: true, message: "Password reset successfully. You can now log in with your new password." };
     },
 
+    /** Update profile fields (avatar data URL, display name, bio). */
+    updateProfile: function (email, fields) {
+      var users = readUsers();
+      var user = users.find(function (u) { return u.email === email; });
+      if (!user) return { ok: false, message: 'User not found.' };
+      if (fields.name !== undefined && fields.name.trim()) user.name = fields.name.trim();
+      if (fields.avatar !== undefined) user.avatar = fields.avatar; // may be null to reset
+      if (fields.bio !== undefined) user.bio = fields.bio.trim();
+      writeUsers(users);
+      return { ok: true };
+    },
+
     getSession: function () {
       return localStorage.getItem(SESSION_KEY);
     },
