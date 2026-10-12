@@ -15,9 +15,15 @@ body {
   margin: 0;
   font-family: "Segoe UI", Helvetica, Arial, sans-serif;
   color: var(--ink);
-  background: linear-gradient(160deg, var(--bg-a) 0%, var(--bg-b) 100%);
+  background: linear-gradient(160deg, var(--bg-a) 0%, var(--bg-b) 100%) fixed;
   min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  -webkit-text-size-adjust: 100%;
 }
+
+main { flex: 1; width: 100%; }
 
 /* ---- Logo (sunrise in a chat bubble) ---- */
 .logo {
@@ -479,6 +485,97 @@ textarea#bio-input:focus { outline: none; border-color: var(--dusk); box-shadow:
 .recent-section { margin-top: 24px; }
 
 #clear-demo-btn { width: auto; margin: 12px auto 0; display: block; padding: 8px 16px; }
+
+/* ---- Responsive / full screen ---- */
+
+@media (max-width: 768px) {
+  .topbar { padding: 10px 14px; }
+
+  .topnav { gap: 4px; }
+
+  .topnav-link { padding: 6px 10px; font-size: 0.9rem; }
+
+  .feed-page, .profile-page { padding: 16px 12px 48px; }
+
+  .feed-col, .profile-col { max-width: 100%; }
+
+  .card { max-width: 100%; }
+
+  .auth-page { padding: 16px; align-items: flex-start; }
+  .auth-page .card { margin-top: 24px; margin-bottom: 24px; }
+
+  .post-media { max-height: 320px; object-fit: cover; }
+
+  .profile-avatar-row { flex-direction: column; text-align: center; }
+  .profile-avatar-actions { flex-direction: row; justify-content: center; }
+
+  .stats { gap: 8px; }
+
+  .page-heading { flex-direction: column; align-items: flex-start; gap: 4px; }
+
+  .composer-toolbar .btn-primary { width: 100%; margin: 6px 0 0; }
+}
+
+@media (max-width: 480px) {
+  .topbar { flex-wrap: wrap; }
+
+  .topnav { width: 100%; margin-top: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  .topnav-link { flex-shrink: 0; }
+
+  .post-actions { gap: 8px; }
+
+  .comment-input-row .avatar-xs { display: none; }
+
+  .stats { flex-direction: column; }
+
+  .join-row .join-names { width: 100%; }
+
+  .live-dot + * { min-width: 0; }
+}
+/* ---- Responsive / full screen ---- */
+
+@media (max-width: 768px) {
+  .topbar { padding: 10px 14px; }
+
+  .topnav { gap: 4px; }
+
+  .topnav-link { padding: 6px 10px; font-size: 0.9rem; }
+
+  .feed-page, .profile-page { padding: 16px 12px 48px; }
+
+  .feed-col, .profile-col { max-width: 100%; }
+
+  .card { max-width: 100%; }
+
+  .auth-page { padding: 16px; align-items: flex-start; }
+  .auth-page .card { margin-top: 24px; margin-bottom: 24px; }
+
+  .post-media { max-height: 320px; object-fit: cover; }
+
+  .profile-avatar-row { flex-direction: column; text-align: center; }
+  .profile-avatar-actions { flex-direction: row; justify-content: center; }
+
+  .stats { gap: 8px; }
+
+  .page-heading { flex-direction: column; align-items: flex-start; gap: 4px; }
+
+  .composer-toolbar .btn-primary { width: 100%; margin: 6px 0 0; }
+
+  .topbar { flex-wrap: wrap; }
+
+  .topnav { width: 100%; margin-top: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  .topnav-link { flex-shrink: 0; }
+
+  .post-actions { gap: 8px; }
+
+  .comment-input-row .avatar-xs { display: none; }
+
+  .stats { flex-direction: column; }
+
+  .join-row .join-names { width: 100%; }
+}
 
 /* ---- Dashboard ---- */
 .topbar {
